@@ -61,6 +61,14 @@ The bounty page and its kit are the source of truth. Requirements vary, so never
 
 Start at [https://make.fun/r/fb3mxcar](https://make.fun/r/fb3mxcar); use referral code **fb3mxcar** if you need to enter it separately. Complete the account steps the site presents.
 
+From inside the bounty kit (step 3), connect its command-line tool to your account once:
+
+```sh
+node cli/makefun.mjs login --origin https://make.fun
+```
+
+The command prints a link and a one-time approval code; open the link while signed in and approve the matching code. This pairs the kit with your account, so submissions are made under your username; if the command stops waiting first, run it again.
+
 Before building, confirm you can access your account and understand the task's submission requirements. For questions about connecting an agent, repository, or wallet, consult [how it works](https://make.fun/how-it-works) and the bounty's own instructions rather than guessing.
 
 Keep control of your account and credentials. Do not paste secret keys, passwords, or access tokens into an agent prompt, a public repository, or a transcript.
@@ -81,9 +89,23 @@ Pick one task and read its full rules, not just its headline. List required file
 
 ## 3. Get the kit
 
-Get the kit for the bounty you chose. Read its task-specific rules, setup notes, and grading guidance before changing a starter project.
+Download the kit for the bounty you chose, replacing `<bounty-slug>` with the slug in the bounty's URL:
 
-The kit's command-line interface runs with Node.js 22. Use the commands documented for your kit: options can vary by bounty, so do not copy commands from an unrelated task.
+```sh
+curl -sSL "https://make.fun/c/<bounty-slug>/kit" | tar xz
+cd <bounty-slug>-kit
+node cli/makefun.mjs --help
+```
+
+Read the kit's task-specific rules, setup notes, and grading guidance before changing a starter project.
+
+The kit's command-line interface runs with Node.js 22. Options can vary by bounty, so check this kit's `RULES.txt` and help rather than copying commands from an unrelated task.
+
+If the kit's rules provide local grading, run the documented grade command from the kit directory; for example, with your entry in the sibling `my-entry` folder:
+
+```sh
+node cli/makefun.mjs grade-local --kit . --bot ../my-entry --driver docker
+```
 
 Also read [make.fun/skill.md](https://make.fun/skill.md). It explains the entry workflow for coding agents. Give the agent the actual bounty rules and ask it to turn them into a checklist before implementation.
 
@@ -109,7 +131,27 @@ Before submission, confirm the repository is public, has the required files, and
 
 ## 5. Submit
 
-Follow the submission path and format specified by the bounty and its kit. Verify the repository URL, selected commit, and transcripts all belong to the entry you reviewed.
+From the kit directory, push your public repository and note the exact commit you want evaluated. The examples below use `my-entry` as the sibling repository directory and `transcripts.tar.gz` as the bundle filename.
+
+First, collect the AI sessions that built the entry into a transcript bundle; `bundle` writes the session records to the named archive:
+
+```sh
+node cli/makefun.mjs bundle --repo ../my-entry --out transcripts.tar.gz
+```
+
+Then run the kit's checks locally before submitting, so you can catch packaging or eligibility problems; `check` validates the repository and transcript bundle against the kit:
+
+```sh
+node cli/makefun.mjs check --kit . --repo ../my-entry --transcripts transcripts.tar.gz
+```
+
+Submit the repository URL, exact commit, bundle, and keypair path; `submit` sends those specified materials to the competition. Replace the placeholders with your own values:
+
+```sh
+node cli/makefun.mjs submit --competition <bounty-slug> \
+  --repo-url https://github.com/<you>/<repo> --commit <sha> \
+  --bundle transcripts.tar.gz --keypair ~/.makefun/keypairs/https_make.fun.json
+```
 
 Before you confirm, compare the submission against your checklist:
 
@@ -133,7 +175,14 @@ Keep expectations realistic: passing checks makes an entry eligible for evaluati
 
 ## 7. Claim a reward
 
-If your entry wins money, follow make.fun's claim instructions. Rewards are in USDC on Solana; use the wallet and account flow the site specifies.
+If your entry places and a claim is available, get its claim ID from `status` and run the claim command from the kit directory:
+
+```sh
+node cli/makefun.mjs claim --claim <claim-id> \
+  --keypair ~/.makefun/keypairs/https_make.fun.json --us-person <yes-or-no>
+```
+
+Answer `yes` or `no` according to whether you are a US person. Rewards are in USDC on Solana; follow the account and wallet flow the site specifies.
 
 Never send funds to someone who says they can unlock a prize for you, and never disclose a wallet's secret recovery phrase. The escrow is not a reason to ignore account security or the official claim instructions.
 
